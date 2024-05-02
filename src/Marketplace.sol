@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity 0.8.20;
 
+import "./SoulBoundToken.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "./SoulBoundToken.sol";
 
 
 error NotSoulBoundSeller();
@@ -15,17 +15,17 @@ error NoProceeds();
 error NotOwner();
 error NotApprovedForMarketplace();
 error PriceMustBeAboveZero();
-error ProceedsWithdrawn(address seller,uint256 amount);
 
 
 contract NftMarketplace is ReentrancyGuard {
     address payable marketplaceOwner;
     address public soulboundAddress;
 
-    constructor(address _soulboundAddress) IERC721("MarketplaceNFT", "NFTMP") {
-        marketplaceOwner = payable(msg.sender);
-        soulboundAddress = _soulboundAddress;
-    }
+    constructor(address _soulboundAddress) ERC721("MarketplaceNFT","NFT") {
+    marketplaceOwner = payable(msg.sender);
+    soulboundAddress = _soulboundAddress;
+}
+
     mapping(address => mapping(uint256 => Listing)) private s_listings;
     mapping(address => uint256) private s_proceeds;
 
@@ -54,6 +54,7 @@ contract NftMarketplace is ReentrancyGuard {
         uint256 indexed tokenId,
         uint256 price
     );
+    event ProceedsWithdrawn(address seller,uint256 amount);
 
    
 
@@ -75,7 +76,7 @@ contract NftMarketplace is ReentrancyGuard {
 
     modifier isSeller(address nftAddress,uint256 tokenId,address spender) {
         SoulBoundToken soulBound = SoulBoundToken(soulboundAddress);
-        if(!soulBound.ownerOf(tokenId)==spender){
+        if(soulBound.ownerOf(tokenId) != spender){
             revert NotSoulBoundSeller();
         }
         IERC721 nft = IERC721(nftAddress);
@@ -104,13 +105,8 @@ contract NftMarketplace is ReentrancyGuard {
     {
         emit ItemCanceled(msg.sender, nftAddress, tokenId);
         delete (s_listings[nftAddress][tokenId]);
-        if(s_listings[msg.sender] = 0)
-        {
-             _burnSoulBoundToken(msg.sender);
-        }
         
     }
-
 
     function buyItem(address nftAddress, uint256 tokenId)external payable isListed(nftAddress, tokenId) nonReentrant
     {
@@ -121,10 +117,7 @@ contract NftMarketplace is ReentrancyGuard {
         emit ItemBought(msg.sender, nftAddress, tokenId, listedItem.price);
         s_proceeds[listedItem.seller] += msg.value;
         delete (s_listings[nftAddress][tokenId]);
-        if(s_listings[listedItem.seller] = 0)
-        {
-             _burnSoulBoundToken(msg.sender);
-        }
+    
         IERC721(nftAddress).safeTransferFrom(listedItem.seller, msg.sender, tokenId);
         
     }
@@ -139,7 +132,7 @@ contract NftMarketplace is ReentrancyGuard {
     }
 
    
-    function withdrawProceeds() external nonReentrant{
+    function withdrawProceeds() public nonReentrant{
          uint256 proceeds = s_proceeds[msg.sender];
         if (proceeds <= 0) {
             revert NoProceeds();
@@ -150,11 +143,6 @@ contract NftMarketplace is ReentrancyGuard {
         require(success, "Transfer failed");
     }
 
-
-
-    function _burnSoulBoundToken() internal {    
-        SoulBoundToken(soulboundAddress).burn(msg.sender); // Burn the seller's token
-    }
 
     function getListing(address nftAddress, uint256 tokenId) external view returns (Listing memory)
     {
