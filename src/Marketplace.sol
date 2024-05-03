@@ -3,6 +3,7 @@ pragma solidity 0.8.20;
 
 import "./SoulBoundToken.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 
@@ -21,7 +22,7 @@ contract NftMarketplace is ReentrancyGuard {
     address payable marketplaceOwner;
     address public soulboundAddress;
 
-    constructor(address _soulboundAddress) ERC721("MarketplaceNFT","NFT") {
+    constructor(address _soulboundAddress){
     marketplaceOwner = payable(msg.sender);
     soulboundAddress = _soulboundAddress;
 }
